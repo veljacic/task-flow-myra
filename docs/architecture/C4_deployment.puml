@@ -1,0 +1,54 @@
+@startuml C4_Deployment
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+title C4 — Deployment View
+
+
+Deployment_Node(app_network, "docker-network", "Bridge Network") {
+
+  Deployment_Node(db_container, "task-management-db", "PostgreSQL Container") {
+    ContainerDb(postgres, "PostgreSQL 15", "Database", "Users, tasks, sessions\nPort: 5432 → 5435")
+    Deployment_Node(pg_volume, "postgres-data", "Docker Volume") {
+      Container(pg_data, "Data Storage", "Persistent Volume", "Database files")
+    }
+  }
+
+  Deployment_Node(api_container, "task-management-service", "API Container") {
+    Container(api, "Task Management API", "Node.js/Express", "Business logic, authentication\nPort: 3000 → ${API_PORT}")
+  }
+
+  Deployment_Node(ui_container, "task-management-ui", "Frontend Container") {
+    Container(frontend, "React SPA", "Nginx + React", "User interface\nPort: 80 → ${FRONTEND_PORT}")
+  }
+
+  Deployment_Node(migration_container, "task-management-db-migrations", "Migration Container", "One-time execution") {
+    Container(migrations, "DB Migrations", "Node.js", "Database schema setup\n(npm run migrate)")
+  }
+}
+
+
+Person(user, "End User", "Browser")
+
+Rel(user, frontend, "HTTPS", "${FRONTEND_PORT}")
+Rel(frontend, api, "HTTP API", "${API_PORT}/api")
+Rel(api, postgres, "SQL Connection", "5435")
+Rel(migrations, postgres, "Schema Updates", "5435")
+
+Rel(postgres, pg_data, "Persists to")
+
+Rel_D(postgres, api, "Health Check", "depends_on")
+Rel_D(api, frontend, "Health Check", "depends_on")
+Rel_D(postgres, migrations, "Health Check", "depends_on")
+
+note right of app_network
+  All containers communicate
+  through this bridge network
+
+  Health checks ensure proper
+  startup sequence
+end note
+
+
+
+SHOW_LEGEND()
+@enduml

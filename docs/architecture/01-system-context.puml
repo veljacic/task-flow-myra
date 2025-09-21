@@ -1,0 +1,19 @@
+@startuml "Task Management System - System Context"
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Task Management System - System Context
+
+Person(user, "End User", "A user who needs to manage tasks and track productivity")
+
+System(taskMgmtSystem, "Task Management Service", "Allows users to create, manage, and track their tasks with authentication and session management")
+
+System_Ext(frontend, "Frontend Application", "Web applicationthat provides the user interface")
+System_Ext(database, "PostgreSQL Database", "Stores user data, tasks, and session information")
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, taskMgmtSystem, "Makes API calls to", "HTTPS/JSON")
+Rel(taskMgmtSystem, database, "Reads from and writes to", "TCP/SQL")
+
+@enduml

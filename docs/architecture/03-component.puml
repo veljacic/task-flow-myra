@@ -1,0 +1,76 @@
+@startuml "Task Management System - Component Diagram"
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Task Management System - Web API Component Diagram
+
+Container_Ext(frontend, "Frontend Application", "Web/Mobile app")
+ContainerDb_Ext(database, "PostgreSQL Database", "User and task data storage")
+
+Container_Boundary(webApi, "Web API Container") {
+
+    Component(mainApp, "Express Application", "Express.js", "Main application setup with middleware pipeline")
+
+    Component(authController, "Auth Controller", "Express Router", "Handles user registration, login, logout, and token refresh")
+    Component(taskController, "Task Controller", "Express Router", "Handles CRUD operations for tasks")
+
+    Component(authMiddleware, "Auth Middleware", "JWT Verification", "Validates JWT tokens and extracts user context")
+    Component(validationMiddleware, "Validation Middleware", "Zod Schemas", "Validates request bodies and query parameters")
+    Component(errorMiddleware, "Error Middleware", "Error Handler", "Centralized error handling and JSON:API responses")
+
+    Component(authService, "Auth Service", "Business Logic", "User authentication, session management, password hashing")
+    Component(taskService, "Task Service", "Business Logic", "Task CRUD operations, filtering, pagination, and stats")
+    Component(tokenService, "Token Service", "JWT Operations", "JWT token generation, verification, and refresh logic")
+
+    Component(taskSerializer, "Task Serializer", "Data Transformation", "Transforms task data to JSON:API format")
+    Component(clientInfo, "Client Info Utility", "Request Analysis", "Extracts IP address and user agent from requests")
+    Component(taskData, "Task Data Utility", "Data Processing", "Processes and validates task data from requests")
+
+    Component(dbLayer, "Database Layer", "Drizzle ORM", "Database schema, types, and query interface")
+}
+
+Rel(frontend, mainApp, "HTTP Requests", "HTTPS/JSON")
+
+Rel(mainApp, authController, "Routes /api/v1/auth/*")
+Rel(mainApp, taskController, "Routes /api/v1/tasks/*")
+Rel(mainApp, errorMiddleware, "Error handling")
+
+Rel(authController, authService, "Uses")
+Rel(authController, tokenService, "Uses")
+Rel(authController, clientInfo, "Uses")
+Rel(authController, validationMiddleware, "Uses")
+
+Rel(taskController, taskService, "Uses")
+Rel(taskController, taskSerializer, "Uses")
+Rel(taskController, taskData, "Uses")
+Rel(taskController, authMiddleware, "Protected by")
+Rel(taskController, validationMiddleware, "Uses")
+
+Rel(authService, dbLayer, "Database operations")
+Rel(taskService, dbLayer, "Database operations")
+
+Rel(dbLayer, database, "SQL Queries", "TCP/SQL")
+
+note top of authService
+  - User registration & validation
+  - Password hashing with bcrypt
+  - Session creation & management
+  - Refresh token validation
+end note
+
+note top of taskService
+  - Task CRUD operations
+  - Advanced filtering & search
+  - Pagination & statistics
+  - Soft delete implementation
+end note
+
+note top of tokenService
+  - JWT access token generation
+  - Refresh token generation
+  - Token verification & validation
+  - Configurable expiration times
+end note
+
+@enduml

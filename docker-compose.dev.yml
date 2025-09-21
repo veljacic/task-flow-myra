@@ -1,0 +1,85 @@
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: postgres-db-dev
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: task-management-dev-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d task-management-dev-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: ./task-management-service
+      dockerfile: Dockerfile.dev
+    container_name: task-management-service-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./task-management-service/src:/app/src
+      - ./task-management-service/package.json:/app/package.json
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:dev_password@database:5432/task-management-dev-db
+      - JWT_SECRET=dev-jwt-secret-key-change-in-production
+      - JWT_REFRESH_SECRET=dev-jwt-refresh-secret-key-change-in-production
+      - FRONTEND_URL=http://localhost:5173
+    depends_on:
+      database:
+        condition: service_healthy
+    command: npm run dev
+    networks:
+      - app-network
+
+  migrations:
+    build:
+      context: ./task-management-service
+      dockerfile: Dockerfile.dev
+    container_name: task-management-service-migrations-dev
+    volumes:
+      - ./task-management-service/src:/app/src
+      - ./task-management-service/package.json:/app/package.json
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:dev_password@database:5432/task-management-dev-db
+    depends_on:
+      database:
+        condition: service_healthy
+    command: npm run migrate
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./task-management-ui
+      dockerfile: Dockerfile.dev
+    container_name: task-management-ui-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./task-management-ui/src:/app/src
+    environment:
+      - VITE_API_URL=http://localhost:3000/api/v1
+    depends_on:
+      - api
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-dev-data:
+    driver: local

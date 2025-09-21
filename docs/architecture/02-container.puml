@@ -1,0 +1,37 @@
+@startuml "Task Management System - Container Diagram"
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Task Management System - Container Diagram
+
+Person(user, "End User", "A user who needs to manage tasks")
+System_Ext(frontend, "Frontend Application", "Web  app providing user interface")
+
+System_Boundary(taskMgmtSystem, "Task Management Service") {
+    Container(webApi, "Web API", "Node.js, Express.js, TypeScript", "Provides task management functionality via RESTful API with JWT authentication")
+    ContainerDb(database, "Database", "PostgreSQL, Drizzle ORM", "Stores user accounts, authentication sessions, and task data")
+}
+
+Rel(user, frontend, "Uses", "HTTPS")
+Rel(frontend, webApi, "Makes API calls to", "HTTPS/JSON")
+Rel(webApi, database, "Reads from and writes to", "TCP/SQL")
+
+note right of webApi
+  Key Features:
+  - JWT-based authentication
+  - RESTful API endpoints
+  - Request validation with Zod
+  - Cookie-based session management
+  - CORS and security middleware
+end note
+
+note right of database
+  Schema includes:
+  - Users table with email/password
+  - Sessions table for refresh tokens
+  - Tasks table with soft deletes
+  - Proper indexing for performance
+end note
+
+@enduml
